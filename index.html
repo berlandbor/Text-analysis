@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Анализатор текста</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .container {
+            width: 80%;
+            max-width: 600px;
+            margin: 50px auto;
+            text-align: center;
+            font-family: Arial, sans-serif;
+        }
+
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #result, #wordFrequency {
+            margin-top: 20px;
+            background-color: #f5f5f5;
+            padding: 10px 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0,0,0,0.1);
+        }
+
+        #wordFrequency {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        h3 {
+            margin-top: 0;
+            font-size: 18px;
+        }
+        #uniqueWords{
+         max-height: 300px;
+            overflow-y: auto; 
+        }
+        
+        #frequencyCounts{
+          max-height: 300px;
+            overflow-y: auto; 
+        }
+ #wordFrequencyChart {
+    width: 100%;
+    height: 800px;
+}
+h1{
+  text-align:center;
+}
+p{
+   text-align:center;
+}
+    </style>
+</head>
+<body>
+  <h1>Анализатор текста</h1>
+  <p>berlandbor</p>
+    <div class="container">
+        <textarea id="inputText" placeholder="Введите ваш текст здесь..."></textarea>
+        <button onclick="analyzeText()">Анализировать</button>
+        <div id="result"></div>
+<canvas id="wordFrequencyChart"></canvas>
+
+<canvas id="wordFrequencyPieChart"></canvas>
+
+<div id="wordFrequency"></div>
+        
+<canvas id="frequencyPieChart"></canvas> 
+        
+<div id="frequencyCounts"></div>
+       
+
+       
+       <div id="uniqueWords"></div>
+    
+       <!--div id="prepositionsList"></div-->
+    </div>
+    <script>
+        function countSentences(text) {
+            return text.split(/[.!?]/).filter(sentence => sentence.trim().length > 0).length;
+        }
+
+        function countSyllables(word) {
+            const syllablePattern = /[aeiouyаеёиоуыэюя]/gi;
+            return (word.match(syllablePattern) || []).length;
+        }
+
+        function fleschReadingEase(text) {
+            const sentences = countSentences(text);
+            const words = text.split(/\s+/).filter(Boolean).length;
+            const syllables = text.split(/\s+/).reduce((sum, word) => sum + countSyllables(word), 0);
+
+            return 206.835 - 1.015 * (words / sentences) - 84.6 * (syllables / words);
+        }
+
+        function filterFrequentWords(frequencyObject) {
+            const result = {};
+            for (const [word, count] of Object.entries(frequencyObject)) {
+                if (count >1) {
+                    result[word] = count;
+                }
+            }
+            return result;
+        }
+
+        function analyzeText() {
+            const text = document.getElementById('inputText').value;
+            const wordsArray = text.toLowerCase().split(/\s+/).filter(Boolean);
+
+            const wordFrequency = {};
+            wordsArray.forEach(word => {
+                word = word.replace(/[^a-zа-я0-9]/gi, '');
+                wordFrequency[word] = (wordFrequency[word] || 0) + 1;
+            });
+            const sortedFrequentWords = Object.entries(wordFrequency).sort((a, b) => b[1] - a[1]);
+
+            const frequentWords = filterFrequentWords(wordFrequency);
+            
+            const frequencyCounts = {};
+
+for (let word in wordFrequency) {
+    let count = wordFrequency[word];
+    if (!frequencyCounts[count]) {
+        frequencyCounts[count] = 1;
+    } else {
+        frequencyCounts[count]++;
+    }
+}
+
+
+const frequencyDiv = document.getElementById('frequencyCounts');
+frequencyDiv.innerHTML = '<h3>Частота слов:</h3>';
+
+for (let freq in frequencyCounts) {
+    frequencyDiv.innerHTML += `<p><strong>${freq} раз(а):</strong> ${frequencyCounts[freq]} слов(а)</p>`;
+}
+
+
+
+const freqLabels = Object.keys(frequencyCounts).map(freq => `${freq} раз(а)`);
+const freqData = Object.values(frequencyCounts);
+
+const pieCtx = document.getElementById('frequencyPieChart').getContext('2d');
+new Chart(pieCtx, {
+    type: 'pie',  // или 'doughnut' для кольцевой диаграммы
+    data: {
+        labels: freqLabels,
+        datasets: [{
+            data: freqData,
+            backgroundColor: [
+                'rgba(255, 99, 132, 0.2)',
+                'rgba(54, 162, 235, 0.2)',
+                'rgba(255, 206, 86, 0.2)',
+                'rgba(75, 192, 192, 0.2)',
+                'rgba(153, 102, 255, 0.2)',
+                // ... добавьте больше цветов, если у вас много категорий
+            ],
+            borderColor: [
+                'rgba(255, 99, 132, 1)',
+                'rgba(54, 162, 235, 1)',
+                'rgba(255, 206, 86, 1)',
+                'rgba(75, 192, 192, 1)',
+                'rgba(153, 102, 255, 1)',
+                // ... добавьте больше цветов, если у вас много категорий
+            ],
+            borderWidth: 1
+        }]
+    }
+});
+            
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `Количество слов в тексте: <strong>${wordsArray.length}</strong><br>`;
+            resultDiv.innerHTML += `Индекс удобочитаемости Флеша: <strong>${fleschReadingEase(text).toFixed(2)}</strong>`;
+
+            // Получите уникальные слова из wordsArray в порядке их появления:
+const uniqueWordsInOrder = [...new Set(wordsArray)];
+
+const labels = uniqueWordsInOrder.filter(word => wordFrequency[word] >= 1);
+//const labels = uniqueWordsInOrder;
+const data = labels.map(label => wordFrequency[label]);
+
+
+
+
+const ctx = document.getElementById('wordFrequencyChart').getContext('2d');
+new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: labels,
+        datasets: [{
+            label: 'Частота встречаемости слов',
+            data: data,
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            borderColor: 'rgba(75, 192, 192, 1)',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            x: {
+                beginAtZero: true,
+                ticks: {
+                    autoSkip: true,
+                   // maxTicksLimit: 500
+                }
+            },
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+const wordFrequencyDiv = document.getElementById('wordFrequency');
+wordFrequencyDiv.innerHTML = '<h3>Частота встречаемости слов (рейтинг):</h3>';
+for (const [word, count] of sortedFrequentWords) {
+    wordFrequencyDiv.innerHTML += `<p><strong>${word}:</strong> ${count} раз(а)</p>`;
+}
+
+// Сортировка слов по частоте встречаемости
+const sortedWords = Object.entries(wordFrequency).sort((a, b) => b[1] - a[1]);
+
+const pieLabels = sortedWords.map(entry => entry[0]);
+const pieData = sortedWords.map(entry => entry[1]);
+
+const wordPieCtx = document.getElementById('wordFrequencyPieChart').getContext('2d');
+new Chart(wordPieCtx, {
+    type: 'pie',
+    data: {
+        labels: pieLabels,
+        datasets: [{
+            data: pieData,
+            backgroundColor: [
+                'rgba(255, 99, 132, 0.2)',
+                'rgba(54, 162, 235, 0.2)',
+                'rgba(255, 206, 86, 0.2)',
+                'rgba(75, 192, 192, 0.2)',
+                'rgba(153, 102, 255, 0.2)',
+                // ... добавьте больше цветов, если у вас много категорий
+            ],
+            borderColor: [
+                'rgba(255, 99, 132, 1)',
+                'rgba(54, 162, 235, 1)',
+                'rgba(255, 206, 86, 1)',
+                'rgba(75, 192, 192, 1)',
+                'rgba(153, 102, 255, 1)',
+                // ... добавьте больше цветов, если у вас много категорий
+            ],
+            borderWidth: 1
+        }]
+    }
+});
+
+            
+            function filterUniqueWords(frequencyObject) {
+    const result = {};
+    for (const [word, count] of Object.entries(frequencyObject)) {
+        if (count === 1) {
+            result[word] = count;
+        }
+    }
+    return result;
+}
+
+const uniqueWords = filterUniqueWords(wordFrequency);
+const uniqueWordsDiv = document.getElementById('uniqueWords');
+uniqueWordsDiv.innerHTML = '<h3>Список уникальных слов:</h3>';
+
+for (const word of Object.keys(uniqueWords)) {
+    uniqueWordsDiv.innerHTML += `<p><strong>${word}</strong></p>`;
+}
+
+
+// Массив предлогов
+const prepositions = new Set(["в", "на", "под", "над", "с", "за", "из", "у", "к", "о", "по", "при", "до", "от", "без", "для", "про", "меж", "через", "среди"]);
+
+// Объект для хранения предлогов
+const prepositionsFrequency = {};
+
+wordsArray.forEach(word => {
+    word = word.replace(/[^a-zа-я0-9]/gi, '');
+    if (prepositions.has(word)) {
+        prepositionsFrequency[word] = (prepositionsFrequency[word] || 0) + 1;
+    } else {
+        wordFrequency[word] = (wordFrequency[word] || 0) + 1;
+    }
+});
+
+
+
+const prepositionsDiv = document.getElementById('prepositionsList');
+prepositionsDiv.innerHTML = '<h3>Список предлогов:</h3>';
+
+for (const [word, count] of Object.entries(prepositionsFrequency)) {
+    prepositionsDiv.innerHTML += `<p><strong>${word}:</strong> ${count} раз(а)</p>`;
+}
+        }
+    </script>
+</body>
+</html>
